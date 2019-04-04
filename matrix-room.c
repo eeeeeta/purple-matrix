@@ -40,6 +40,8 @@
 
 static gchar *_get_room_name(MatrixConnectionData *conn,
         PurpleConversation *conv);
+static gchar *_get_room_alias(MatrixConnectionData *conn,
+        PurpleConversation *conv);
 static const gchar *_get_my_display_name(PurpleConversation *conv);
 
 static MatrixConnectionData *_get_connection_data_from_conversation(
@@ -127,12 +129,13 @@ static void _set_flags(PurpleConversation *conv, guint flags)
  */
 static void _update_room_alias(PurpleConversation *conv)
 {
-    gchar *room_name;
+    gchar *room_name, *room_alias;
     MatrixConnectionData *conn = _get_connection_data_from_conversation(conv);
     PurpleChat *chat;
     guint flags;
 
     room_name = _get_room_name(conn, conv);
+    room_alias = _get_room_alias(conn, conv);
 
     /* update the buddy list entry */
     chat = purple_blist_find_chat(conv->account, conv->name);
@@ -146,6 +149,7 @@ static void _update_room_alias(PurpleConversation *conv)
     if (strcmp(room_name, purple_conversation_get_title(conv)))
         purple_conversation_set_title(conv, room_name);
 
+    purple_conversation_set_data(conv, "matrix_alias", (gpointer) room_alias);
     g_free(room_name);
 
     flags = _get_flags(conv);
@@ -365,7 +369,24 @@ static gchar *_get_room_name_from_members(MatrixConnectionData *conn,
     return res;
 }
 
+/**
+ * figure out the best alias for a room
+ *
+ * @returns a string which should be freed
+ */
+static gchar *_get_room_alias(MatrixConnectionData *conn,
+        PurpleConversation *conv)
+{
+    MatrixRoomStateEventTable *state_table = matrix_room_get_state_table(conv);
+    gchar *res;
 
+    res = matrix_statetable_get_room_alias_new(state_table, TRUE);
+    if (res)
+        return res;
+
+    return g_strdup(conv -> name);
+
+}
 /**
  * figure out the best name for a room
  *
@@ -1094,11 +1115,11 @@ void matrix_room_handle_timeline_event(PurpleConversation *conv,
     }
     flags = PURPLE_MESSAGE_RECV;
 
-    if (purple_strequal(matrix_json_object_get_string_member(json_content_obj, "format"), "org.matrix.custom.html")) {
-        escaped_body = g_strdup(matrix_json_object_get_string_member(json_content_obj, "formatted_body"));
-    } else {
-        escaped_body = purple_markup_escape_text(tmp_body ? tmp_body : msg_body, -1);
-    }
+    //if (purple_strequal(matrix_json_object_get_string_member(json_content_obj, "format"), "org.matrix.custom.html")) {
+    //    escaped_body = g_strdup(matrix_json_object_get_string_member(json_content_obj, "formatted_body"));
+    //} else {
+    escaped_body = purple_markup_escape_text(tmp_body ? tmp_body : msg_body, -1);
+    //}
     g_free(tmp_body);
     purple_debug_info("matrixprpl", "got message from %s in %s\n", sender_id,
             room_id);
@@ -1353,9 +1374,9 @@ gchar *matrix_room_displayname_to_userid(struct _PurpleConversation *conv,
 void matrix_room_complete_state_update(PurpleConversation *conv,
         gboolean announce_arrivals)
 {
-    _update_user_list(conv, announce_arrivals);
     if(_get_flags(conv) & PURPLE_CONV_FLAG_NEEDS_NAME_UPDATE)
         _update_room_alias(conv);
+    _update_user_list(conv, announce_arrivals);
 }
 
 

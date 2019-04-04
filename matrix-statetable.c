@@ -118,7 +118,6 @@ void matrix_statetable_update(MatrixRoomStateEventTable *state_table,
     g_hash_table_insert(state_table_entry, g_strdup(state_key), event);
 }
 
-
 /**
  * If the room has an official name, or an alias, return it
  *
@@ -126,13 +125,24 @@ void matrix_statetable_update(MatrixRoomStateEventTable *state_table,
  */
 gchar *matrix_statetable_get_room_alias(MatrixRoomStateEventTable *state_table)
 {
+	return matrix_statetable_get_room_alias_new(state_table, FALSE);
+}
+
+/**
+ * If the room has an official name, or an alias, return it.
+ * If `alias_only` is true, only return aliases (i.e. not room names).
+ *
+ * @returns a string which should be freed
+ */
+gchar *matrix_statetable_get_room_alias_new(MatrixRoomStateEventTable *state_table, gboolean alias_only)
+{
     GHashTable *tmp;
     MatrixRoomEvent *event;
     const gchar *tmpname = NULL;
 
     /* start by looking for the official room name */
     event = matrix_statetable_get_event(state_table, "m.room.name", "");
-    if(event != NULL) {
+    if(event != NULL && !alias_only) {
         tmpname = matrix_json_object_get_string_member(
                 event->content, "name");
         if(tmpname != NULL && tmpname[0] != '\0') {

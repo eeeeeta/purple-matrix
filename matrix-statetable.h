@@ -81,5 +81,6 @@ void matrix_statetable_update(MatrixRoomStateEventTable *state_table,
  * @returns a string which should be freed
  */
 gchar *matrix_statetable_get_room_alias(MatrixRoomStateEventTable *state_table);
+gchar *matrix_statetable_get_room_alias_new(MatrixRoomStateEventTable *state_table, gboolean alias_only);
 
 #endif /* MATRIX_STATETABLE_H_ */
